@@ -3,9 +3,15 @@ from flask_login import LoginManager, login_user, logout_user, login_required, c
 from config import Config
 from models import db, User, LoginHistory
 from datetime import datetime
+import sys
+import traceback
 
 app = Flask(__name__)
 app.config.from_object(Config)
+
+# 로깅 설정
+import logging
+logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
 
 db.init_app(app)
 login_manager = LoginManager()
@@ -89,33 +95,45 @@ def register():
     
     if request.method == 'POST':
         try:
+            app.logger.info("=== 회원가입 시작 ===")
             username = request.form.get('username')
             email = request.form.get('email')
             password = request.form.get('password')
             
+            app.logger.info(f"Username: {username}, Email: {email}")
+            
             if not username or not email or not password:
+                app.logger.warning("필수 필드 누락")
                 flash('모든 필드를 입력해주세요.', 'danger')
                 return redirect(url_for('register'))
             
-            if User.query.filter_by(username=username).first():
+            app.logger.info("중복 체크 시작")
+            existing_user = User.query.filter_by(username=username).first()
+            if existing_user:
+                app.logger.warning(f"중복 사용자명: {username}")
                 flash('이미 존재하는 사용자명입니다.', 'danger')
                 return redirect(url_for('register'))
             
-            if User.query.filter_by(email=email).first():
+            existing_email = User.query.filter_by(email=email).first()
+            if existing_email:
+                app.logger.warning(f"중복 이메일: {email}")
                 flash('이미 존재하는 이메일입니다.', 'danger')
                 return redirect(url_for('register'))
             
+            app.logger.info("사용자 생성 시작")
             user = User(username=username, email=email)
             user.set_password(password)
             db.session.add(user)
             db.session.commit()
             
+            app.logger.info(f"회원가입 성공: {username}")
             flash('회원가입이 완료되었습니다. 로그인해주세요.', 'success')
             return redirect(url_for('login'))
         except Exception as e:
             db.session.rollback()
-            flash(f'회원가입 중 오류가 발생했습니다. 관리자에게 문의하세요.', 'danger')
-            print(f"Registration error: {e}")
+            app.logger.error(f"회원가입 에러: {str(e)}")
+            app.logger.error(traceback.format_exc())
+            flash(f'회원가입 중 오류가 발생했습니다.', 'danger')
             return redirect(url_for('register'))
     
     return render_template('register.html')
