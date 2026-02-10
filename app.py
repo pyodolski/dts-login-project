@@ -2,7 +2,7 @@ from flask import Flask, render_template, redirect, url_for, flash, request
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 from config import Config
 from models import db, User, LoginHistory
-from datetime import datetime, timezone, timedelta
+from datetime import datetime
 import sys
 import traceback
 
@@ -13,14 +13,19 @@ app.config.from_object(Config)
 import logging
 logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
 
-# 한국 시간대 설정
-KST = timezone(timedelta(hours=9))
-
 db.init_app(app)
 login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = 'login'
 login_manager.login_message = '로그인이 필요합니다.'
+
+# Jinja2 필터: UTC를 KST로 변환
+@app.template_filter('kst')
+def to_kst(dt):
+    if dt is None:
+        return None
+    from datetime import timedelta
+    return dt + timedelta(hours=9)
 
 @login_manager.user_loader
 def load_user(user_id):
@@ -84,8 +89,8 @@ def login():
             app.logger.info("비밀번호 확인 완료, 로그인 처리")
             login_user(user, remember=True)
             
-            # 마지막 로그인 시간 업데이트 (KST)
-            user.last_login = datetime.now(KST)
+            # 마지막 로그인 시간 업데이트
+            user.last_login = datetime.utcnow()
             
             # 로그인 기록 저장
             login_record = LoginHistory(
