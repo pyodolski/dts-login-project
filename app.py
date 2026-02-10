@@ -2,7 +2,7 @@ from flask import Flask, render_template, redirect, url_for, flash, request
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 from config import Config
 from models import db, User, LoginHistory
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
 import sys
 import traceback
 
@@ -12,6 +12,9 @@ app.config.from_object(Config)
 # 로깅 설정
 import logging
 logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
+
+# 한국 시간대 설정
+KST = timezone(timedelta(hours=9))
 
 db.init_app(app)
 login_manager = LoginManager()
@@ -81,8 +84,8 @@ def login():
             app.logger.info("비밀번호 확인 완료, 로그인 처리")
             login_user(user, remember=True)
             
-            # 마지막 로그인 시간 업데이트
-            user.last_login = datetime.utcnow()
+            # 마지막 로그인 시간 업데이트 (KST)
+            user.last_login = datetime.now(KST)
             
             # 로그인 기록 저장
             login_record = LoginHistory(

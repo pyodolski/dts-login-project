@@ -1,9 +1,12 @@
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import UserMixin
 from werkzeug.security import generate_password_hash, check_password_hash
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
 
 db = SQLAlchemy()
+
+# 한국 시간대
+KST = timezone(timedelta(hours=9))
 
 class User(UserMixin, db.Model):
     __tablename__ = 'users'
@@ -12,7 +15,7 @@ class User(UserMixin, db.Model):
     username = db.Column(db.String(80), unique=True, nullable=False, index=True)
     email = db.Column(db.String(120), unique=True, nullable=False, index=True)
     password_hash = db.Column(db.String(255), nullable=False)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(KST))
     last_login = db.Column(db.DateTime)
     
     # Relationship
@@ -32,7 +35,7 @@ class LoginHistory(db.Model):
     
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
-    login_time = db.Column(db.DateTime, default=datetime.utcnow)
+    login_time = db.Column(db.DateTime, default=lambda: datetime.now(KST))
     ip_address = db.Column(db.String(45))
     user_agent = db.Column(db.String(255))
     
