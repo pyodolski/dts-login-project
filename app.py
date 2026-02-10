@@ -29,6 +29,22 @@ def index():
         return redirect(url_for('dashboard'))
     return redirect(url_for('login'))
 
+@app.route('/health')
+def health():
+    """헬스체크 및 DB 연결 확인"""
+    try:
+        # DB 연결 테스트
+        user_count = User.query.count()
+        db_status = f"OK - {user_count} users"
+    except Exception as e:
+        db_status = f"ERROR - {str(e)}"
+    
+    return {
+        'status': 'running',
+        'database': db_status,
+        'db_url': app.config['SQLALCHEMY_DATABASE_URI'][:30] + '...' if app.config['SQLALCHEMY_DATABASE_URI'] else 'Not set'
+    }
+
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if current_user.is_authenticated:
