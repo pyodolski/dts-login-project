@@ -29,29 +29,38 @@ def login():
         return redirect(url_for('dashboard'))
     
     if request.method == 'POST':
-        username = request.form.get('username')
-        password = request.form.get('password')
-        
-        user = User.query.filter_by(username=username).first()
-        
-        if user and user.check_password(password):
-            login_user(user)
-            user.last_login = datetime.utcnow()
+        try:
+            username = request.form.get('username')
+            password = request.form.get('password')
             
-            # 로그인 기록 저장
-            login_record = LoginHistory(
-                user_id=user.id,
-                ip_address=request.remote_addr,
-                user_agent=request.headers.get('User-Agent')
-            )
-            db.session.add(login_record)
-            db.session.commit()
+            if not username or not password:
+                flash('아이디와 비밀번호를 입력해주세요.', 'danger')
+                return render_template('login.html')
             
-            flash('로그인에 성공했습니다!', 'success')
-            next_page = request.args.get('next')
-            return redirect(next_page) if next_page else redirect(url_for('dashboard'))
-        else:
-            flash('아이디 또는 비밀번호가 올바르지 않습니다.', 'danger')
+            user = User.query.filter_by(username=username).first()
+            
+            if user and user.check_password(password):
+                login_user(user)
+                user.last_login = datetime.utcnow()
+                
+                # 로그인 기록 저장
+                login_record = LoginHistory(
+                    user_id=user.id,
+                    ip_address=request.remote_addr,
+                    user_agent=request.headers.get('User-Agent')
+                )
+                db.session.add(login_record)
+                db.session.commit()
+                
+                flash('로그인에 성공했습니다!', 'success')
+                next_page = request.args.get('next')
+                return redirect(next_page) if next_page else redirect(url_for('dashboard'))
+            else:
+                flash('아이디 또는 비밀번호가 올바르지 않습니다.', 'danger')
+        except Exception as e:
+            db.session.rollback()
+            flash('로그인 중 오류가 발생했습니다.', 'danger')
+            print(f"Login error: {e}")
     
     return render_template('login.html')
 
@@ -79,25 +88,35 @@ def register():
         return redirect(url_for('dashboard'))
     
     if request.method == 'POST':
-        username = request.form.get('username')
-        email = request.form.get('email')
-        password = request.form.get('password')
-        
-        if User.query.filter_by(username=username).first():
-            flash('이미 존재하는 사용자명입니다.', 'danger')
+        try:
+            username = request.form.get('username')
+            email = request.form.get('email')
+            password = request.form.get('password')
+            
+            if not username or not email or not password:
+                flash('모든 필드를 입력해주세요.', 'danger')
+                return redirect(url_for('register'))
+            
+            if User.query.filter_by(username=username).first():
+                flash('이미 존재하는 사용자명입니다.', 'danger')
+                return redirect(url_for('register'))
+            
+            if User.query.filter_by(email=email).first():
+                flash('이미 존재하는 이메일입니다.', 'danger')
+                return redirect(url_for('register'))
+            
+            user = User(username=username, email=email)
+            user.set_password(password)
+            db.session.add(user)
+            db.session.commit()
+            
+            flash('회원가입이 완료되었습니다. 로그인해주세요.', 'success')
+            return redirect(url_for('login'))
+        except Exception as e:
+            db.session.rollback()
+            flash(f'회원가입 중 오류가 발생했습니다. 관리자에게 문의하세요.', 'danger')
+            print(f"Registration error: {e}")
             return redirect(url_for('register'))
-        
-        if User.query.filter_by(email=email).first():
-            flash('이미 존재하는 이메일입니다.', 'danger')
-            return redirect(url_for('register'))
-        
-        user = User(username=username, email=email)
-        user.set_password(password)
-        db.session.add(user)
-        db.session.commit()
-        
-        flash('회원가입이 완료되었습니다. 로그인해주세요.', 'success')
-        return redirect(url_for('login'))
     
     return render_template('register.html')
 
@@ -115,6 +134,13 @@ def create_test_user():
     db.session.add(user)
     db.session.commit()
     print('테스트 사용자가 생성되었습니다. (username: testuser, password: password123)')
+
+# Vercel serverless 환경에서 테이블 자동 생성
+with app.app_context():
+    try:
+        db.create_all()
+    except Exception as e:
+        print(f"Database initialization error: {e}")
 
 # Vercel serverless function handler
 app = app
