@@ -29,6 +29,22 @@ def index():
         return redirect(url_for('dashboard'))
     return redirect(url_for('login'))
 
+@app.route('/health')
+def health():
+    """헬스체크 및 DB 연결 확인"""
+    try:
+        # DB 연결 테스트
+        user_count = User.query.count()
+        db_status = f"OK - {user_count} users"
+    except Exception as e:
+        db_status = f"ERROR - {str(e)}"
+    
+    return {
+        'status': 'running',
+        'database': db_status,
+        'db_url': app.config['SQLALCHEMY_DATABASE_URI'][:30] + '...' if app.config['SQLALCHEMY_DATABASE_URI'] else 'Not set'
+    }
+
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if current_user.is_authenticated:
@@ -36,37 +52,58 @@ def login():
     
     if request.method == 'POST':
         try:
+            app.logger.info("=== 로그인 시도 ===")
             username = request.form.get('username')
             password = request.form.get('password')
             
+            app.logger.info(f"Username: {username}")
+            
             if not username or not password:
+                app.logger.warning("아이디/비밀번호 누락")
                 flash('아이디와 비밀번호를 입력해주세요.', 'danger')
                 return render_template('login.html')
             
+            app.logger.info("사용자 조회 시작")
             user = User.query.filter_by(username=username).first()
             
-            if user and user.check_password(password):
-                login_user(user)
-                user.last_login = datetime.utcnow()
-                
-                # 로그인 기록 저장
-                login_record = LoginHistory(
-                    user_id=user.id,
-                    ip_address=request.remote_addr,
-                    user_agent=request.headers.get('User-Agent')
-                )
-                db.session.add(login_record)
-                db.session.commit()
-                
-                flash('로그인에 성공했습니다!', 'success')
-                next_page = request.args.get('next')
-                return redirect(next_page) if next_page else redirect(url_for('dashboard'))
-            else:
+            if not user:
+                app.logger.warning(f"사용자 없음: {username}")
                 flash('아이디 또는 비밀번호가 올바르지 않습니다.', 'danger')
+                return render_template('login.html')
+            
+            app.logger.info(f"사용자 찾음: {user.username}")
+            
+            if not user.check_password(password):
+                app.logger.warning("비밀번호 불일치")
+                flash('아이디 또는 비밀번호가 올바르지 않습니다.', 'danger')
+                return render_template('login.html')
+            
+            app.logger.info("비밀번호 확인 완료, 로그인 처리")
+            login_user(user, remember=True)
+            
+            # 마지막 로그인 시간 업데이트
+            user.last_login = datetime.utcnow()
+            
+            # 로그인 기록 저장
+            login_record = LoginHistory(
+                user_id=user.id,
+                ip_address=request.remote_addr,
+                user_agent=request.headers.get('User-Agent', '')[:255]
+            )
+            db.session.add(login_record)
+            db.session.commit()
+            
+            app.logger.info(f"로그인 성공: {username}")
+            flash('로그인에 성공했습니다!', 'success')
+            next_page = request.args.get('next')
+            return redirect(next_page) if next_page else redirect(url_for('dashboard'))
+            
         except Exception as e:
             db.session.rollback()
+            app.logger.error(f"로그인 에러: {str(e)}")
+            app.logger.error(traceback.format_exc())
             flash('로그인 중 오류가 발생했습니다.', 'danger')
-            print(f"Login error: {e}")
+            return render_template('login.html')
     
     return render_template('login.html')
 
