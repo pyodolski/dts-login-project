@@ -4,10 +4,10 @@ from dotenv import load_dotenv
 load_dotenv()
 
 class Config:
-    SECRET_KEY = os.environ.get('SECRET_KEY') or 'dev-secret-key-change-in-production'
+    SECRET_KEY = os.environ.get('SECRET_KEY', 'dev-secret-key-change-in-production').strip()
     
     # Supabase 연결 설정
-    db_url = os.environ.get('SUPABASE_DB_URL') or 'sqlite:///app.db'
+    db_url = os.environ.get('SUPABASE_DB_URL', 'sqlite:///app.db').strip()
     
     SQLALCHEMY_DATABASE_URI = db_url
     SQLALCHEMY_TRACK_MODIFICATIONS = False
