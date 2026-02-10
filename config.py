@@ -9,20 +9,20 @@ class Config:
     # Supabase 연결 설정
     db_url = os.environ.get('SUPABASE_DB_URL') or 'sqlite:///app.db'
     
-    # SSL 모드 추가 (Supabase Pooler 사용 시 필요)
-    if 'supabase.com' in db_url and '?' not in db_url:
-        db_url += '?sslmode=require'
-    
     SQLALCHEMY_DATABASE_URI = db_url
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     SQLALCHEMY_ENGINE_OPTIONS = {
         'pool_pre_ping': True,
-        'pool_recycle': 300,
-        'pool_size': 5,
-        'max_overflow': 10,
+        'pool_recycle': 280,
+        'pool_size': 3,
+        'max_overflow': 5,
+        'pool_timeout': 10,
         'connect_args': {
             'connect_timeout': 10,
-            'sslmode': 'require'
+            'keepalives': 1,
+            'keepalives_idle': 30,
+            'keepalives_interval': 10,
+            'keepalives_count': 5,
         }
     }
     # 세션 설정
