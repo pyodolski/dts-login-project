@@ -198,6 +198,11 @@ def create_test_user():
     db.session.commit()
     print('테스트 사용자가 생성되었습니다. (username: testuser, password: password123)')
 
+# 요청 후 DB 연결 정리
+@app.teardown_appcontext
+def shutdown_session(exception=None):
+    db.session.remove()
+
 # Vercel serverless 환경에서 테이블 자동 생성
 with app.app_context():
     try:
