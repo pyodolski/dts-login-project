@@ -55,7 +55,7 @@
                   <i class="bi bi-calendar"></i> 가입일
                 </h6>
                 <h4 class="fs-6">
-                  {{ current_user.created_at.strftime('%Y-%m-%d') }}
+                  {{ (current_user.created_at|kst).strftime('%Y-%m-%d') }}
                 </h4>
               </div>
             </div>
@@ -77,7 +77,9 @@
             <tbody>
               {% for record in login_history %}
               <tr>
-                <td>{{ record.login_time.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+                <td>
+                  {{ (record.login_time|kst).strftime('%Y-%m-%d %H:%M:%S') }}
+                </td>
                 <td>{{ record.ip_address }}</td>
                 <td>{{ record.user_agent[:50] }}...</td>
               </tr>

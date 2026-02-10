@@ -36,8 +36,8 @@
         <div class="text-center mt-4">
           <small class="text-muted">
             <i class="bi bi-clock"></i>
-            마지막 로그인: {{ current_user.last_login.strftime('%Y-%m-%d %H:%M')
-            if current_user.last_login else '정보 없음' }}
+            마지막 로그인: {{ (current_user.last_login|kst).strftime('%Y-%m-%d
+            %H:%M') if current_user.last_login else '정보 없음' }}
           </small>
         </div>
       </div>
