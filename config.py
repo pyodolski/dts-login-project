@@ -13,17 +13,9 @@ class Config:
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     SQLALCHEMY_ENGINE_OPTIONS = {
         'pool_pre_ping': True,
-        'pool_recycle': 280,
-        'pool_size': 3,
-        'max_overflow': 5,
-        'pool_timeout': 10,
-        'connect_args': {
-            'connect_timeout': 10,
-            'keepalives': 1,
-            'keepalives_idle': 30,
-            'keepalives_interval': 10,
-            'keepalives_count': 5,
-        }
+        'pool_recycle': 300,
+        'pool_size': 1,
+        'max_overflow': 0,
     }
     # 세션 설정
     SESSION_COOKIE_SECURE = True
